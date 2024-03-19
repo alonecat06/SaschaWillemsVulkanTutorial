@@ -171,6 +171,7 @@ set(EXAMPLES
 	vertexattributes
 	viewportarray
 	vulkanscene
+	fur
 )
 
 buildExamples()
