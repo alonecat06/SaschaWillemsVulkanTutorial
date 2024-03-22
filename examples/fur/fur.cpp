@@ -32,8 +32,10 @@ class VulkanExample : public VulkanExampleBase
 public:
 	bool wireframe = false;
 
-	float furLength = 0.1f;
+	float furLength = 0.2f;
 	int furLayerNum = 32;
+	float furDensity = 100.0f;
+	float furAttenuation = 3.0f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {
@@ -74,11 +76,11 @@ public:
 	VulkanExample() : VulkanExampleBase()
 	{
 		title = "Fur rendering";
-		camera.type = Camera::CameraType::lookat;
+		camera.type = Camera::CameraType::firstperson;
 		camera.flipY = true;
 		camera.setPosition(glm::vec3(0.0f, 1.0f, -2.0f));
 		camera.setRotation(glm::vec3(-30.0f, 0.0f, 0.0f));
-		camera.setPerspective(75.0f, (float)width / (float)height, 0.01f, 256.0f);
+		camera.setPerspective(60.0f, (float)width / (float)height, 0.01f, 256.0f);
 	}
 
 	~VulkanExample()
@@ -138,13 +140,18 @@ public:
 			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
 			
 			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
-					, sizeof(float), &furLength);
+				, sizeof(float), &furLength);
+			
+			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
+				, sizeof(float), &furDensity);
+			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
+				, sizeof(float), &furAttenuation);
 			
 			for (int32_t j= 0; j < furLayerNum ; ++j)
 			{
 				float layerRatio = static_cast<float>(j) / static_cast<float>(furLayerNum);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT
-					, sizeof(float), sizeof(float), &layerRatio);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float)
+					, sizeof(float), &layerRatio);
 				vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 1);
 			}
 
@@ -263,10 +270,13 @@ public:
 		std::array<VkDescriptorSetLayout, 1> setLayouts = { descriptorSetLayouts.matrices };
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 		// We will use push constants to push the local matrices of a primitive to the vertex shader
-		VkPushConstantRange pushConstantRange = vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, 0);
+		std::array<VkPushConstantRange, 2> pushConstantRanges = {
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, 0),
+			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, sizeof(float) * 2)
+			};
 		// Push constant ranges are part of the pipeline layout
-		pipelineLayoutCI.pushConstantRangeCount = 1;
-		pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
+		pipelineLayoutCI.pushConstantRangeCount = 2;
+		pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();
 		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
 
 		// Pipeline

@@ -7,7 +7,14 @@ layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec2 inUV;
 layout (location = 3) in vec3 inViewVec;
 layout (location = 4) in vec3 inLightVec;
-layout (location = 5) in float inLayerRatio;
+
+
+layout(push_constant) uniform PushConsts {
+	float len;
+	float ratio;
+	float density;
+	float attenuation;
+} furFrag;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -29,14 +36,13 @@ float valueNoise(vec2 uv) {
 
 void main() 
 {
-	if (hash(inUV * 1000.0) < inLayerRatio)
+	float high = valueNoise(inUV * furFrag.density);
+	if (high < furFrag.ratio)
 	{
-//		outFragColor = vec4(0.0, 0.0, 0.0, 1.0);
-//		return;
 		discard;
 	}
-	
-	vec4 color = vec4(inColor, 1.0) * inLayerRatio;
+
+	vec4 color = vec4(inColor, 1.0) * pow(high, furFrag.attenuation);
 
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
