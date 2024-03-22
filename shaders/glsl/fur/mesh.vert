@@ -14,10 +14,10 @@ layout (set = 0, binding = 0) uniform UBOScene
 } uboScene;
 
 layout(push_constant) uniform PushConsts {
-	mat4 model;
+//	mat4 model;
 	float len;
 	float ratio;
-} primitive;
+} fur;
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec3 outColor;
@@ -28,17 +28,15 @@ layout (location = 5) out float outLayerRatio;
 
 void main() 
 {
-	outNormal = inNormal;
 	outColor = inColor;
 	outUV = inUV;
 	
 	vec4 pos = uboScene.view * vec4(inPos, 1.0);
-	outNormal = mat3(uboScene.view) * inNormal;
 	vec3 lPos = mat3(uboScene.view) * uboScene.lightPos.xyz;
+	outNormal = mat3(uboScene.view) * inNormal;
 	outLightVec = uboScene.lightPos.xyz - pos.xyz;
 	outViewVec = uboScene.viewPos.xyz - pos.xyz;
-	outLayerRatio = primitive.ratio;
+	outLayerRatio = fur.ratio;
 	
-	float furLen = primitive.ratio * primitive.len;
-	gl_Position = uboScene.projection * uboScene.view * primitive.model * vec4(inPos.xyz, 1.0) + vec4(furLen * outNormal, 1.0);
+	gl_Position = uboScene.projection * uboScene.view * vec4(inPos.xyz + fur.ratio * fur.len * outNormal, 1.0);
 }

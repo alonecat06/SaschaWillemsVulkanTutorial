@@ -1,6 +1,6 @@
 #version 450
 
-layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
+//layout (set = 1, binding = 0) uniform sampler2D samplerColorMap;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
@@ -29,12 +29,14 @@ float valueNoise(vec2 uv) {
 
 void main() 
 {
-	if (valueNoise(inUV) < inLayerRatio)
+	if (hash(inUV * 1000.0) < inLayerRatio)
 	{
+//		outFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+//		return;
 		discard;
 	}
 	
-	vec4 color = texture(samplerColorMap, inUV) * vec4(inColor, 1.0);
+	vec4 color = vec4(inColor, 1.0) * inLayerRatio;
 
 	vec3 N = normalize(inNormal);
 	vec3 L = normalize(inLightVec);
@@ -42,5 +44,5 @@ void main()
 	vec3 R = reflect(L, N);
 	vec3 diffuse = max(dot(N, L), 0.15) * inColor;
 	vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
-	outFragColor = vec4(diffuse * color.rgb + specular, 1.0);		
+	outFragColor = vec4(diffuse * color.rgb + specular, 1.0);
 }
