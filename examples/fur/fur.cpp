@@ -30,6 +30,9 @@
 class VulkanExample : public VulkanExampleBase
 {
 public:
+	int32_t furRenderMethod = 0;
+	int32_t furModel = 0;
+	
 	bool wireframe = false;
 
 	float furLength = 0.2f;
@@ -49,7 +52,7 @@ public:
 		VkBuffer buffer;
 		VkDeviceMemory memory;
 		int32_t count;
-	} vertices, indices;
+	} planeVertices, planeIndices, sphereVertices, sphereIndices;
 
 	struct ShaderData {
 		vks::Buffer buffer;
@@ -61,12 +64,20 @@ public:
 		} values;
 	} shaderData;
 
-	struct Pipelines {
-		VkPipeline solid{ VK_NULL_HANDLE };
-		VkPipeline wireframe{ VK_NULL_HANDLE };
-	} pipelines;
+	enum FurRenderMethod {
+		multi_draw_shell = 0,
+		geom_shell = 1,
+		geom_shell_fin = 2,
+		tess = 3,
+		max,
+	};
+	std::array<VkPipeline, 4> pipelines = {
+		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
+	};
 
-	VkPipelineLayout pipelineLayout{ VK_NULL_HANDLE };
+	std::array<VkPipelineLayout, 4> pipelineLayouts = {
+		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
+	};
 	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 
 	struct DescriptorSetLayouts {
@@ -85,13 +96,22 @@ public:
 
 	~VulkanExample()
 	{
-		if (device) {
-			vkDestroyPipeline(device, pipelines.solid, nullptr);
-			if (pipelines.wireframe != VK_NULL_HANDLE) {
-				vkDestroyPipeline(device, pipelines.wireframe, nullptr);
+		if (device)
+		{
+			for (size_t i =0; i < FurRenderMethod::max; ++i)
+			{
+				if (i < pipelines.size() && pipelines[i] != VK_NULL_HANDLE)
+				{
+					vkDestroyPipeline(device, pipelines[i], nullptr);
+				}
+				if (i < pipelineLayouts.size() && pipelineLayouts[i] != VK_NULL_HANDLE)
+				{
+					vkDestroyPipelineLayout(device, pipelineLayouts[i], nullptr);
+				}
 			}
-			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+			
 			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
+			
 			shaderData.buffer.destroy();
 		}
 	}
@@ -124,7 +144,7 @@ public:
 		const VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
 		const VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
 
-		for (int32_t i = 0; i < drawCmdBuffers.size(); ++i)
+		for (size_t i = 0; i < drawCmdBuffers.size(); ++i)
 		{			
 			renderPassBeginInfo.framebuffer = frameBuffers[i];
 			VK_CHECK_RESULT(vkBeginCommandBuffer(drawCmdBuffers[i], &cmdBufInfo));
@@ -132,27 +152,64 @@ public:
 			vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
 			vkCmdSetScissor(drawCmdBuffers[i], 0, 1, &scissor);
 			// Bind scene matrices descriptor to set 0
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, wireframe ? pipelines.wireframe : pipelines.solid);
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &vertices.buffer, offsets);
-			vkCmdBindIndexBuffer(drawCmdBuffers[i], indices.buffer, 0, VK_INDEX_TYPE_UINT32);
-			
-			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
-				, sizeof(float), &furLength);
-			
-			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
-				, sizeof(float), &furDensity);
-			vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
-				, sizeof(float), &furAttenuation);
-			
-			for (int32_t j= 0; j < furLayerNum ; ++j)
+			if (0 <= furRenderMethod || furRenderMethod < pipelines.size())
 			{
-				float layerRatio = static_cast<float>(j) / static_cast<float>(furLayerNum);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float)
-					, sizeof(float), &layerRatio);
-				vkCmdDrawIndexed(drawCmdBuffers[i], indices.count, 1, 0, 0, 1);
+				if (pipelineLayouts[furRenderMethod] == VK_NULL_HANDLE)
+					vks::tools::exitFatal("Fur buildCommandBuffers fail furRenderMethod:" + std::to_string(furRenderMethod) +
+					" pipelineLayout is null:" + std::to_string(pipelineLayouts[furRenderMethod] == VK_NULL_HANDLE), -1);
+				if (pipelines[furRenderMethod] == VK_NULL_HANDLE)
+					vks::tools::exitFatal("Fur buildCommandBuffers fail furRenderMethod:" + std::to_string(furRenderMethod) +
+					" pipelines is null:" + std::to_string(pipelines[furRenderMethod] == VK_NULL_HANDLE) , -1);
+			}
+			VkPipelineLayout pipelineLayout = pipelineLayouts[furRenderMethod];
+			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
+
+			if (furModel == 0)// plane
+			{
+				VkDeviceSize offsets[1] = { 0 };
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &planeVertices.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], planeIndices.buffer, 0, VK_INDEX_TYPE_UINT32);
+			}
+			else if (furModel == 1)// sphere
+			{
+				
+			}
+			else// suzanne.gltf model
+			{
+				
+			}
+
+			if (furRenderMethod == FurRenderMethod::multi_draw_shell)
+			{
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
+					, sizeof(float), &furLength);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
+					, sizeof(float), &furDensity);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
+					, sizeof(float), &furAttenuation);
+			
+				for (int32_t j= 0; j < furLayerNum ; ++j)
+				{
+					float layerRatio = static_cast<float>(j) / static_cast<float>(furLayerNum);
+					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float)
+						, sizeof(float), &layerRatio);
+					vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);
+				}
+			}
+			else if (furRenderMethod == FurRenderMethod::geom_shell)
+			{
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
+					, sizeof(float), &furLength);
+				float fFurLayerNum = static_cast<float>(furLayerNum);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_GEOMETRY_BIT, sizeof(float)
+					, sizeof(float), &fFurLayerNum);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
+					, sizeof(float), &furDensity);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
+					, sizeof(float), &furAttenuation);
+			
+				vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);
 			}
 
 			drawUI(drawCmdBuffers[i]);
@@ -160,8 +217,15 @@ public:
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
 		}
 	}
+
+	void loadAssets()
+	{
+		createPlane();
+		createSphere();
+		loadModel();
+	}
 	
-	void createSquare()
+	void createPlane()
 	{
 		std::vector<Vertex> vertexBuffer{
 				{ {  1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
@@ -175,8 +239,8 @@ public:
 		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
 		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
 
-		vertices.count = vertexBuffer.size();
-		indices.count = indexBuffer.size();
+		planeVertices.count = vertexBuffer.size();
+		planeIndices.count = indexBuffer.size();
 
 		struct StagingBuffer {
 			VkBuffer buffer;
@@ -204,14 +268,14 @@ public:
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			vertexBufferSize,
-			&vertices.buffer,
-			&vertices.memory));
+			&planeVertices.buffer,
+			&planeVertices.memory));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			indexBufferSize,
-			&indices.buffer,
-			&indices.memory));
+			&planeIndices.buffer,
+			&planeIndices.memory));
 
 		// Copy data from staging buffers (host) do device local buffer (gpu)
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -221,7 +285,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			vertexStaging.buffer,
-			vertices.buffer,
+			planeVertices.buffer,
 			1,
 			&copyRegion);
 
@@ -229,7 +293,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			indexStaging.buffer,
-			indices.buffer,
+			planeIndices.buffer,
 			1,
 			&copyRegion);
 
@@ -240,6 +304,16 @@ public:
 		vkFreeMemory(device, vertexStaging.memory, nullptr);
 		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
 		vkFreeMemory(device, indexStaging.memory, nullptr);
+	}
+
+	void createSphere()
+	{
+		
+	}
+
+	void loadModel()
+	{
+		
 	}
 
 	void setupDescriptors()
@@ -270,14 +344,14 @@ public:
 		std::array<VkDescriptorSetLayout, 1> setLayouts = { descriptorSetLayouts.matrices };
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 		// We will use push constants to push the local matrices of a primitive to the vertex shader
-		std::array<VkPushConstantRange, 2> pushConstantRanges = {
+		std::array<VkPushConstantRange, 2> pushConstantRanges1 = {
 			vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(float) * 2, 0),
 			vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, sizeof(float) * 2)
 			};
 		// Push constant ranges are part of the pipeline layout
-		pipelineLayoutCI.pushConstantRangeCount = 2;
-		pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();
-		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayout));
+		pipelineLayoutCI.pushConstantRangeCount = pushConstantRanges1.size();
+		pipelineLayoutCI.pPushConstantRanges = pushConstantRanges1.data();
+		VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[multi_draw_shell]));
 
 		// Pipeline
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
@@ -305,12 +379,12 @@ public:
 		vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
-		const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-			loadShader(getShadersPath() + "fur/mesh.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getShadersPath() + "fur/mesh.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+		const std::array<VkPipelineShaderStageCreateInfo, 2> shader1Stages = {
+			loadShader(getShadersPath() + "fur/mesh1.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			loadShader(getShadersPath() + "fur/mesh1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
-		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, renderPass, 0);
+		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayouts[multi_draw_shell], renderPass, 0);
 		pipelineCI.pVertexInputState = &vertexInputStateCI;
 		pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
 		pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -319,17 +393,46 @@ public:
 		pipelineCI.pViewportState = &viewportStateCI;
 		pipelineCI.pDepthStencilState = &depthStencilStateCI;
 		pipelineCI.pDynamicState = &dynamicStateCI;
-		pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCI.pStages = shaderStages.data();
+		pipelineCI.stageCount = static_cast<uint32_t>(shader1Stages.size());
+		pipelineCI.pStages = shader1Stages.data();
 
-		// Solid rendering pipeline
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.solid));
+		// Multiple drawing shell rendering pipeline
+		{
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[multi_draw_shell]));
+		}
+		
+		// Geometry shader shell rendering pipeline
+		{
+			// std::array<VkPushConstantRange, 3> pushConstantRanges2 = {
+			// 	vks::initializers::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(float), 0),
+			// 	vks::initializers::pushConstantRange(VK_SHADER_STAGE_GEOMETRY_BIT, sizeof(float), sizeof(float)),
+			// 	vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, sizeof(float) * 2)
+			// 	};
+			// pipelineLayoutCI.pushConstantRangeCount = pushConstantRanges2.size();
+			// pipelineLayoutCI.pPushConstantRanges = pushConstantRanges2.data();
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[geom_shell]));
 
-		// Wire frame rendering pipeline
-		if (deviceFeatures.fillModeNonSolid) {
-			rasterizationStateCI.polygonMode = VK_POLYGON_MODE_LINE;
-			rasterizationStateCI.lineWidth = 1.0f;
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines.wireframe));
+			// pipelineCI.layout = pipelineLayouts[geom_shell];			
+			// const std::array<VkPipelineShaderStageCreateInfo, 3> shader2Stages = {
+			// 	loadShader(getShadersPath() + "fur/mesh2.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+			// 	loadShader(getShadersPath() + "fur/mesh2.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+			// 	loadShader(getShadersPath() + "fur/mesh2.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+			// };
+			// pipelineCI.stageCount = static_cast<uint32_t>(shader2Stages.size());
+			// pipelineCI.pStages = shader2Stages.data();
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_shell]));
+		}
+
+		// Geometry shader shell and fin rendering pipeline
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[geom_shell_fin]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_shell_fin]));
+		}
+
+		// Tessellation shader rendering pipeline
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[tess]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[tess]));
 		}
 	}
 
@@ -353,7 +456,7 @@ public:
 	void prepare()
 	{
 		VulkanExampleBase::prepare();
-		createSquare();
+		loadAssets();
 		prepareUniformBuffers();
 		setupDescriptors();
 		preparePipelines();
@@ -369,8 +472,16 @@ public:
 
 	virtual void OnUpdateUIOverlay(vks::UIOverlay *overlay)
 	{
-		if (overlay->header("Settings")) {
-			if (overlay->checkBox("Wireframe", &wireframe)) {
+		if (overlay->header("Settings"))
+		{
+			if (overlay->comboBox("Fur render method", &furRenderMethod,
+				{"Multiple drawing shell", "Geometry shader shell", "Geometry shader shell and fin", "Tessellation shader"}))
+			{
+				buildCommandBuffers();
+			}
+			if (overlay->comboBox("Fur model", &furModel,
+				{"Plane", "Sphere", "suzanne"}))
+			{
 				buildCommandBuffers();
 			}
 		}
