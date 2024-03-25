@@ -29,12 +29,11 @@ void main()
 {
 	outColor = inColor;
 	outUV = inUV;
-	
-	vec4 pos = uboScene.view * vec4(inPos, 1.0);
-	vec3 lPos = mat3(uboScene.view) * uboScene.lightPos.xyz;
 	outNormal = mat3(uboScene.view) * inNormal;
+	
+	vec4 pos = uboScene.view * vec4(inPos.xyz + fur.ratio * fur.len * outNormal, 1.0);
 	outLightVec = uboScene.lightPos.xyz - pos.xyz;
 	outViewVec = uboScene.viewPos.xyz - pos.xyz;
 	
-	gl_Position = uboScene.projection * uboScene.view * vec4(inPos.xyz + fur.ratio * fur.len * outNormal, 1.0);
+	gl_Position = uboScene.projection * pos;
 }
