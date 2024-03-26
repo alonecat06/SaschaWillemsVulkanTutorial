@@ -11,7 +11,7 @@ layout (set = 0, binding = 0) uniform UBOScene
     vec4 viewPos;
 } uboScene;
 
-layout (set = 1, binding = 0) uniform UBOFur
+layout (set = 0, binding = 1) uniform UBOFur
 {
     float len;
     int layers;

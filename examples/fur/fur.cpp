@@ -63,6 +63,14 @@ public:
 			glm::vec4 viewPos;
 		} values;
 	} shaderData;
+	
+	struct FurData {
+		vks::Buffer buffer;
+		struct Values {
+			float furLen = 0.2f;
+			int furLayers = 32;
+		} values;
+	} furData;
 
 	enum FurRenderMethod {
 		multi_draw_shell = 0,
@@ -78,11 +86,15 @@ public:
 	std::array<VkPipelineLayout, 4> pipelineLayouts = {
 		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
 	};
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-
+	
+	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };	
 	struct DescriptorSetLayouts {
 		VkDescriptorSetLayout matrices{ VK_NULL_HANDLE };
 	} descriptorSetLayouts;
+
+	VkDescriptorPool descriptorPool2{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout descriptorSetLayout2{ VK_NULL_HANDLE };
+	VkDescriptorSet descriptorSet2{ VK_NULL_HANDLE };
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -162,8 +174,6 @@ public:
 					" pipelines is null:" + std::to_string(pipelines[furRenderMethod] == VK_NULL_HANDLE) , -1);
 			}
 			VkPipelineLayout pipelineLayout = pipelineLayouts[furRenderMethod];
-			vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-			vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 
 			if (furModel == 0)// plane
 			{
@@ -182,6 +192,9 @@ public:
 
 			if (furRenderMethod == FurRenderMethod::multi_draw_shell)
 			{
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
+				
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
 					, sizeof(float), &furLength);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
@@ -199,6 +212,8 @@ public:
 			}
 			else if (furRenderMethod == FurRenderMethod::geom_shell)
 			{
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet2, 0, nullptr);
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				// vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_GEOMETRY_BIT, 0
 				// 	, sizeof(float), &furLength);
 				// float fFurLayerNum = static_cast<float>(furLayerNum);
@@ -335,9 +350,45 @@ public:
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool,
 			&descriptorSetLayouts.matrices, 1);
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+		
 		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+
+		// Geometry shader shell rendering descriptor
+		{
+			// DescriptorPool
+			poolSizes = {
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+			};
+			descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool2));
+
+			// DescriptorSetLayout
+			std::array<VkDescriptorSetLayoutBinding,2> setLayoutBindings = {
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					VK_SHADER_STAGE_GEOMETRY_BIT, 0),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					VK_SHADER_STAGE_GEOMETRY_BIT, 1)
+				};
+			descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), 2);
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout2));
+
+			// DescriptorSet
+			allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool2,
+				&descriptorSetLayout2, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet2));
+		
+			std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
+				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					0, &shaderData.buffer.descriptor),
+				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					1, &furData.buffer.descriptor)
+				};
+			
+			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(),
+				0, nullptr);
+		}
 	}
 
 	void preparePipelines()
@@ -406,6 +457,8 @@ public:
 		
 		// Geometry shader shell rendering pipeline
 		{
+			setLayouts = { descriptorSetLayout2 };
+			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 			std::array<VkPushConstantRange, 1> pushConstantRanges2 = {
 				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, 0)
 				};
@@ -416,8 +469,8 @@ public:
 			pipelineCI.layout = pipelineLayouts[geom_shell];			
 			const std::array<VkPipelineShaderStageCreateInfo, 3> shader2Stages = {
 				loadShader(getShadersPath() + "fur/mesh2.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-				loadShader(getShadersPath() + "fur/mesh2.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
-				loadShader(getShadersPath() + "fur/mesh2.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				loadShader(getShadersPath() + "fur/mesh2test.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				loadShader(getShadersPath() + "fur/mesh2test.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
 			pipelineCI.stageCount = static_cast<uint32_t>(shader2Stages.size());
 			pipelineCI.pStages = shader2Stages.data();
@@ -446,6 +499,12 @@ public:
 			&shaderData.buffer, sizeof(shaderData.values)));
 		// Map persistent
 		VK_CHECK_RESULT(shaderData.buffer.map());
+
+		// Uniform buffer for fur setting
+		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&furData.buffer, sizeof(furData.values)));
+		// VK_CHECK_RESULT(furData.buffer.map());
 	}
 
 	void updateUniformBuffers()
@@ -454,6 +513,8 @@ public:
 		shaderData.values.model = camera.matrices.view;
 		shaderData.values.viewPos = camera.viewPos;
 		memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
+		
+		// memcpy(furData.buffer.mapped, &furData.values, sizeof(furData.values));
 	}
 
 	void prepare()
