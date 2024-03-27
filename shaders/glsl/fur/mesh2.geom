@@ -32,6 +32,7 @@ layout (location = 0) out GS_TO_FS
     vec3 viewVec;
     vec3 lightVec;
     float fur_strength;
+//    vec4 debug;
 } gemo_out;
 
 void main(void)
@@ -44,8 +45,9 @@ void main(void)
     {
         for (i = 0; i < gl_in.length(); i++) {
             gemo_out.normal = mat3(uboScene.view) * vertex_in[i].normal;
-            vec4 pos = uboScene.view * (gl_in[i].gl_Position + vec4(gemo_out.normal * d * fur.len, 1.0));
+            vec4 pos = uboScene.view * vec4(gl_in[i].gl_Position.xyz + d * fur.len * gemo_out.normal, 1.0);
             gl_Position = uboScene.projection * pos;
+//            gemo_out.debug = gl_in[i].gl_Position;
             
             gemo_out.color = vertex_in[i].color;
             gemo_out.uv = vertex_in[i].uv;

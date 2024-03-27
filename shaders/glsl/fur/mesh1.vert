@@ -24,6 +24,7 @@ layout (location = 1) out vec3 outColor;
 layout (location = 2) out vec2 outUV;
 layout (location = 3) out vec3 outViewVec;
 layout (location = 4) out vec3 outLightVec;
+//layout (location = 5) out vec4 outDebug;
 
 void main() 
 {
@@ -36,4 +37,6 @@ void main()
 	outViewVec = uboScene.viewPos.xyz - pos.xyz;
 	
 	gl_Position = uboScene.projection * pos;
+
+//	outDebug = vec4(inPos.xyz + fur.ratio * fur.len * outNormal, 1.0);
 }
