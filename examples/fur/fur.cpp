@@ -469,8 +469,8 @@ public:
 			pipelineCI.layout = pipelineLayouts[geom_shell];			
 			const std::array<VkPipelineShaderStageCreateInfo, 3> shader2Stages = {
 				loadShader(getShadersPath() + "fur/mesh2.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-				loadShader(getShadersPath() + "fur/mesh2test.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
-				loadShader(getShadersPath() + "fur/mesh2test.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				loadShader(getShadersPath() + "fur/mesh2.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				loadShader(getShadersPath() + "fur/mesh2.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
 			pipelineCI.stageCount = static_cast<uint32_t>(shader2Stages.size());
 			pipelineCI.pStages = shader2Stages.data();
@@ -504,7 +504,7 @@ public:
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
 			, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&furData.buffer, sizeof(furData.values)));
-		// VK_CHECK_RESULT(furData.buffer.map());
+		VK_CHECK_RESULT(furData.buffer.map());
 	}
 
 	void updateUniformBuffers()
@@ -514,7 +514,7 @@ public:
 		shaderData.values.viewPos = camera.viewPos;
 		memcpy(shaderData.buffer.mapped, &shaderData.values, sizeof(shaderData.values));
 		
-		// memcpy(furData.buffer.mapped, &furData.values, sizeof(furData.values));
+		memcpy(furData.buffer.mapped, &furData.values, sizeof(furData.values));
 	}
 
 	void prepare()

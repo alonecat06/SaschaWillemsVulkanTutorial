@@ -43,10 +43,10 @@ void main(void)
     for (layer = 0; layer < fur.layers; layer++)
     {
         for (i = 0; i < gl_in.length(); i++) {
-            vec4 pos = uboScene.view * (gl_in[i].gl_Position + vec4(vertex_in[i].normal * d * fur.len, 1.0));
+            gemo_out.normal = mat3(uboScene.view) * vertex_in[i].normal;
+            vec4 pos = uboScene.view * (gl_in[i].gl_Position + vec4(gemo_out.normal * d * fur.len, 1.0));
             gl_Position = uboScene.projection * pos;
             
-            gemo_out.normal = mat3(uboScene.view) * vertex_in[i].normal;
             gemo_out.color = vertex_in[i].color;
             gemo_out.uv = vertex_in[i].uv;
 
