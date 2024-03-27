@@ -34,18 +34,20 @@ void main(void)
     {
         vec3 pos = gl_in[i].gl_Position.xyz;
         vec3 normal = vertex_in[i].normal;
-        outNormal = normal;
 
         gl_Position = ubo.projection * (ubo.view * vec4(pos + (normal+vec3(-1, 0, 0)) * normalLength, 1.0));
         outColor = vec3(1.0, 0.0, 0.0);
+        outNormal = normal;
         EmitVertex();
 
         gl_Position = ubo.projection * (ubo.view * vec4(pos + (normal+vec3(1, 0, 0)) * normalLength, 1.0));
         outColor = vec3(0.0, 0.0, 1.0);
+        outNormal = normal;
         EmitVertex();
 
         gl_Position = ubo.projection * (ubo.view * vec4(pos + (normal+vec3(0, 1, 0)) * normalLength, 1.0));
         outColor = vec3(0.0, 1.0, 0.0);
+        outNormal = normal;
         EmitVertex();
 
         EndPrimitive();
