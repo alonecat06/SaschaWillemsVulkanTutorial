@@ -366,11 +366,9 @@ public:
 
 			// DescriptorSetLayout
 			std::array<VkDescriptorSetLayoutBinding,2> setLayoutBindings = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					VK_SHADER_STAGE_GEOMETRY_BIT, 0),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					VK_SHADER_STAGE_GEOMETRY_BIT, 1)
-				};
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)
+				, vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 1)
+			};
 			descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), 2);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout2));
 
@@ -380,11 +378,9 @@ public:
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet2));
 		
 			std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					0, &shaderData.buffer.descriptor),
-				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-					1, &furData.buffer.descriptor)
-				};
+				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor)
+				, vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &furData.buffer.descriptor)
+			};
 			
 			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(),
 				0, nullptr);
@@ -458,7 +454,7 @@ public:
 		// Geometry shader shell rendering pipeline
 		{
 			setLayouts = { descriptorSetLayout2 };
-			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
+			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), setLayouts.size());
 			std::array<VkPushConstantRange, 1> pushConstantRanges2 = {
 				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, 0)
 				};
