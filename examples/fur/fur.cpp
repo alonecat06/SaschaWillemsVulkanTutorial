@@ -35,8 +35,8 @@ public:
 	
 	bool wireframe = false;
 
-	float furLength = 0.2f;
-	int furLayerNum = 32;
+	// float furLength = 0.2f;
+	// int furLayerNum = 32;
 	float furDensity = 100.0f;
 	float furAttenuation = 3.0f;
 		
@@ -68,7 +68,7 @@ public:
 		vks::Buffer buffer;
 		struct Values {
 			float furLen = 0.2f;
-			int furLayers = 32;
+			int furLayers = 16;
 		} values;
 	} furData;
 
@@ -196,15 +196,15 @@ public:
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
-					, sizeof(float), &furLength);
+					, sizeof(float), &furData.values.furLen);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
 					, sizeof(float), &furDensity);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
 					, sizeof(float), &furAttenuation);
 			
-				for (int32_t j= 0; j < furLayerNum ; ++j)
+				for (int32_t j= 0; j < furData.values.furLayers ; ++j)
 				{
-					float layerRatio = static_cast<float>(j) / static_cast<float>(furLayerNum);
+					float layerRatio = static_cast<float>(j) / static_cast<float>(furData.values.furLayers);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float)
 						, sizeof(float), &layerRatio);
 					vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);

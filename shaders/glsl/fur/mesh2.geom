@@ -1,7 +1,7 @@
 #version 450
 
 layout (triangles) in;
-layout (triangle_strip, max_vertices = 96) out;
+layout (triangle_strip, max_vertices = 48) out;
 
 layout (set = 0, binding = 0) uniform UBOScene
 {
