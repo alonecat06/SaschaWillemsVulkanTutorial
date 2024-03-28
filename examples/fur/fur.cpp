@@ -39,7 +39,7 @@ public:
 	// int furLayerNum = 32;
 	float furDensity = 100.0f;
 	float furAttenuation = 3.0f;
-	float furThickness = 0.95f;
+	float furThickness = 1.0f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {
@@ -49,11 +49,11 @@ public:
 		float color[3];
 	};
 	
-	struct {
+	struct Buffer {
 		VkBuffer buffer;
 		VkDeviceMemory memory;
 		int32_t count;
-	} planeVertices, planeIndices, sphereVertices, sphereIndices;
+	} verticesPlane, indicesPlane, verticesSphere, indicesSphere;
 
 	struct ShaderData {
 		vks::Buffer buffer;
@@ -176,15 +176,20 @@ public:
 			}
 			VkPipelineLayout pipelineLayout = pipelineLayouts[furRenderMethod];
 
+			uint32_t indicesCount = 0; 
 			if (furModel == 0)// plane
 			{
 				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &planeVertices.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], planeIndices.buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesPlane.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesPlane.buffer, 0, VK_INDEX_TYPE_UINT32);
+				indicesCount = indicesPlane.count;
 			}
 			else if (furModel == 1)// sphere
 			{
-				
+				VkDeviceSize offsets[1] = { 0 };
+				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesSphere.buffer, offsets);
+				vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesSphere.buffer, 0, VK_INDEX_TYPE_UINT32);
+				indicesCount = indicesSphere.count;
 			}
 			else// suzanne.gltf model
 			{
@@ -208,7 +213,7 @@ public:
 					float layerRatio = static_cast<float>(j) / static_cast<float>(furData.values.furLayers);
 					vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, sizeof(float)
 						, sizeof(float), &layerRatio);
-					vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);
+					vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 				}
 			}
 			else if (furRenderMethod == FurRenderMethod::geom_shell)
@@ -227,7 +232,7 @@ public:
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
 					, sizeof(float), &furThickness);
 			
-				vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);
+				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 			}
 
 			drawUI(drawCmdBuffers[i]);
@@ -239,27 +244,13 @@ public:
 	void loadAssets()
 	{
 		createPlane();
-		createSphere();
+		createSphere(1, 500);
 		loadModel();
 	}
-	
-	void createPlane()
+
+	void transferVertexAndIndex(std::vector<Vertex> vertexBuffer, size_t vertexBufferSize, Buffer& vertices
+		, std::vector<uint32_t> indexBuffer, size_t indexBufferSize, Buffer& indices)
 	{
-		std::vector<Vertex> vertexBuffer{
-				{ {  1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-				{ {  1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-				{ { -1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-				{ {  -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } }
-		};
-		// Setup indices
-		std::vector<uint32_t> indexBuffer{ 0, 1, 2, 2, 3, 0 };
-		
-		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
-		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
-
-		planeVertices.count = vertexBuffer.size();
-		planeIndices.count = indexBuffer.size();
-
 		struct StagingBuffer {
 			VkBuffer buffer;
 			VkDeviceMemory memory;
@@ -286,14 +277,14 @@ public:
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			vertexBufferSize,
-			&planeVertices.buffer,
-			&planeVertices.memory));
+			&vertices.buffer,
+			&vertices.memory));
 		VK_CHECK_RESULT(vulkanDevice->createBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			indexBufferSize,
-			&planeIndices.buffer,
-			&planeIndices.memory));
+			&indices.buffer,
+			&indices.memory));
 
 		// Copy data from staging buffers (host) do device local buffer (gpu)
 		VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
@@ -303,7 +294,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			vertexStaging.buffer,
-			planeVertices.buffer,
+			vertices.buffer,
 			1,
 			&copyRegion);
 
@@ -311,7 +302,7 @@ public:
 		vkCmdCopyBuffer(
 			copyCmd,
 			indexStaging.buffer,
-			planeIndices.buffer,
+			indices.buffer,
 			1,
 			&copyRegion);
 
@@ -323,10 +314,100 @@ public:
 		vkDestroyBuffer(device, indexStaging.buffer, nullptr);
 		vkFreeMemory(device, indexStaging.memory, nullptr);
 	}
-
-	void createSphere()
+	
+	void createPlane()
 	{
+		std::vector<Vertex> vertexBuffer{
+			{ {  1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ {  1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ { -1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ {  -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } }
+		};
+		// Setup indices
+		std::vector<uint32_t> indexBuffer{ 0, 1, 2, 2, 3, 0 };
 		
+		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+
+		verticesPlane.count = vertexBuffer.size();
+		indicesPlane.count = indexBuffer.size();
+
+		transferVertexAndIndex(vertexBuffer, vertexBufferSize, verticesPlane
+			, indexBuffer, indexBufferSize, indicesPlane);
+	}
+
+	std::vector<Vertex> generateSphereGeometry(float radius, int num_vertices) {
+		int num_longitude = static_cast<int>(std::sqrt(num_vertices));
+		int num_latitude = num_vertices / num_longitude;
+
+		std::vector<Vertex> vertices;
+
+		for (int i = 0; i <= num_latitude; ++i) {
+			float latitude = (i * M_PI) / num_latitude - (M_PI / 2);
+			float xy = radius * std::cos(latitude);
+			float z = radius * std::sin(latitude);
+
+			for (int j = 0; j <= num_longitude; ++j) {
+				float longitude = (j * 2 * M_PI) / num_longitude;
+				float x = xy * std::cos(longitude);
+				float y = xy * std::sin(longitude);
+
+				Vertex vertex;
+				vertex.position[0] = x;
+				vertex.position[1] = y;
+				vertex.position[2] = z;
+				vertex.normal[0] = x / radius;
+				vertex.normal[1] = y / radius;
+				vertex.normal[2] = z / radius;
+				vertex.uv[0] = j / static_cast<float>(num_longitude);
+				vertex.uv[1] = i / static_cast<float>(num_latitude);
+				vertex.color[0] = 0.0f;
+				vertex.color[1] = 1.0f;
+				vertex.color[2] = 0.0;
+
+				vertices.push_back(vertex);
+			}
+		}
+
+		return vertices;
+	}
+	std::vector<unsigned int> generateSphereIndices(int num_longitude, int num_latitude) {
+		std::vector<unsigned int> indices;
+
+		for (int i = 0; i < num_latitude; ++i) {
+			for (int j = 0; j < num_longitude; ++j) {
+				int index1 = i * (num_longitude + 1) + j;
+				int index2 = i * (num_longitude + 1) + j + 1;
+				int index3 = (i + 1) * (num_longitude + 1) + j;
+				int index4 = (i + 1) * (num_longitude + 1) + j + 1;
+
+				indices.push_back(index1);
+				indices.push_back(index2);
+				indices.push_back(index3);
+
+				indices.push_back(index2);
+				indices.push_back(index4);
+				indices.push_back(index3);
+			}
+		}
+
+		return indices;
+	}
+	void createSphere(float radius, int num_vertices)
+	{
+		std::vector<Vertex> vertexBuffer = generateSphereGeometry(radius, num_vertices);
+		int num_longitude = static_cast<int>(std::sqrt(num_vertices));
+		int num_latitude = num_vertices / num_longitude;
+		std::vector<uint32_t> indexBuffer = generateSphereIndices(num_longitude, num_latitude);;
+		
+		size_t vertexBufferSize = vertexBuffer.size() * sizeof(Vertex);
+		size_t indexBufferSize = indexBuffer.size() * sizeof(uint32_t);
+
+		verticesSphere.count = vertexBuffer.size();
+		indicesSphere.count = indexBuffer.size();
+
+		transferVertexAndIndex(vertexBuffer, vertexBufferSize, verticesSphere
+			, indexBuffer, indexBufferSize, indicesSphere);
 	}
 
 	void loadModel()
@@ -543,7 +624,7 @@ public:
 				buildCommandBuffers();
 			}
 			if (overlay->comboBox("Fur model", &furModel,
-				{"Plane", "Sphere", "suzanne"}))
+				{"Plane", "Sphere", "Suzanne"}))
 			{
 				buildCommandBuffers();
 			}
