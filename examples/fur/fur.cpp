@@ -38,7 +38,7 @@ public:
 	// float furLength = 0.2f;
 	// int furLayerNum = 32;
 	float furDensity = 100.0f;
-	float furAttenuation = 3.0f;
+	float furAttenuation = 0.9f;
 	float furThickness = 1.0f;
 		
 	// Setup vertices// Vertex layout used in this example
@@ -318,10 +318,10 @@ public:
 	void createPlane()
 	{
 		std::vector<Vertex> vertexBuffer{
-			{ {  1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-			{ {  1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
-			{ { -1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-			{ {  -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } }
+			{ {  1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ {  1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ { -1.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+			{ {  -1.0f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } }
 		};
 		// Setup indices
 		std::vector<uint32_t> indexBuffer{ 0, 1, 2, 2, 3, 0 };

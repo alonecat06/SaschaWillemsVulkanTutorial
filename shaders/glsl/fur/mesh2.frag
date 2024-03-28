@@ -8,7 +8,7 @@ layout (location = 0) in GS_TO_FS
 	vec2 uv;
 	vec3 viewVec;
 	vec3 lightVec;
-	float fur_strength;
+	float shell_high;
 } frag_in;
 
 layout(push_constant) uniform PushConsts {
@@ -23,16 +23,32 @@ float hash(vec2 uv){
 	return fract(sin(7.289 * uv.x + 11.23 * uv.y) * 23758.5453);
 }
 
-void main() 
+void main()
 {
 	vec2 localspace = fract(frag_in.uv * furFrag.density) * 2 - 1;
 	float dist = length(localspace);
-	float high = hash(floor(frag_in.uv * furFrag.density));
-	if (dist > furFrag.thickness * (high - frag_in.fur_strength))
+	float rnd_high = hash(floor(frag_in.uv * furFrag.density));
+	
+//	if (dist > furFrag.thickness)
+//	{
+//		discard;
+//	}
+//	if (rnd_high < frag_in.shell_high)
+//	{
+//		discard;
+//	}
+
+//	if (dist > furFrag.thickness * (rnd_high - frag_in.shell_high))
+//	{
+//		discard;
+//	}
+
+	if (frag_in.shell_high > 0 && dist > furFrag.thickness * (rnd_high / frag_in.shell_high - 1))
 	{
 		discard;
+		//outFragColor = vec4(dist,furFrag.thickness * (rnd_high / frag_in.shell_high - 1),rnd_high, frag_in.shell_high);
 	}
-	
-	vec4 color = vec4(frag_in.color, 1.0) * pow(high, furFrag.attenuation);
+
+	vec4 color = vec4(frag_in.color, 1.0) * pow(frag_in.shell_high, furFrag.attenuation);
 	outFragColor = vec4(color.rgb, 1.0);
 }

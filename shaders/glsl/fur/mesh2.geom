@@ -31,7 +31,7 @@ layout (location = 0) out GS_TO_FS
     vec2 uv;
     vec3 viewVec;
     vec3 lightVec;
-    float fur_strength;
+    float shell_high;
 //    vec4 debug;
 } gemo_out;
 
@@ -55,7 +55,7 @@ void main(void)
             gemo_out.viewVec = uboScene.viewPos.xyz - pos.xyz;
             gemo_out.lightVec = uboScene.lightPos.xyz - pos.xyz;
 
-            gemo_out.fur_strength = d;
+            gemo_out.shell_high = d;
             
             EmitVertex();
         }

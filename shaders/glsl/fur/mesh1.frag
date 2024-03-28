@@ -98,7 +98,7 @@ void main()
 	{
 		discard;
 	}
-	vec4 color = vec4(inColor, 1.0) * pow(high, furFrag.attenuation);
+	vec4 color = vec4(inColor, 1.0) * pow(furFrag.ratio, furFrag.attenuation);
 //	vec3 N = normalize(inNormal);
 //	vec3 L = normalize(inLightVec);
 //	vec3 V = normalize(inViewVec);
