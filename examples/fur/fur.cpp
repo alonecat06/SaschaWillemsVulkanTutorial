@@ -39,7 +39,7 @@ public:
 	// int furLayerNum = 32;
 	float furDensity = 100.0f;
 	float furAttenuation = 3.0f;
-	float furThickness = 0.5f;
+	float furThickness = 0.95f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {

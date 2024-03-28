@@ -27,12 +27,8 @@ void main()
 {
 	vec2 localspace = fract(frag_in.uv * furFrag.density) * 2 - 1;
 	float dist = length(localspace);
-	if (dist > furFrag.thickness)
-	{
-		discard;
-	}
 	float high = hash(floor(frag_in.uv * furFrag.density));
-	if (high < frag_in.fur_strength)
+	if (dist > furFrag.thickness * (high - frag_in.fur_strength))
 	{
 		discard;
 	}
