@@ -14,6 +14,7 @@ layout (location = 0) in GS_TO_FS
 layout(push_constant) uniform PushConsts {
 	float density;
 	float attenuation;
+	float thickness;
 } furFrag;
 
 layout (location = 0) out vec4 outFragColor;
@@ -24,11 +25,18 @@ float hash(vec2 uv){
 
 void main() 
 {
+	vec2 localspace = fract(frag_in.uv * furFrag.density) * 2 - 1;
+	float dist = length(localspace);
+	if (dist > furFrag.thickness)
+	{
+		discard;
+	}
 	float high = hash(floor(frag_in.uv * furFrag.density));
 	if (high < frag_in.fur_strength)
 	{
 		discard;
 	}
+	
 	vec4 color = vec4(frag_in.color, 1.0) * pow(high, furFrag.attenuation);
 	outFragColor = vec4(color.rgb, 1.0);
 }

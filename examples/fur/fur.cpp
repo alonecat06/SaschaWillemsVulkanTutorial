@@ -39,6 +39,7 @@ public:
 	// int furLayerNum = 32;
 	float furDensity = 100.0f;
 	float furAttenuation = 3.0f;
+	float furThickness = 0.5f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {
@@ -223,6 +224,8 @@ public:
 					, sizeof(float), &furDensity);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float)
 					, sizeof(float), &furAttenuation);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
+					, sizeof(float), &furThickness);
 			
 				vkCmdDrawIndexed(drawCmdBuffers[i], planeIndices.count, 1, 0, 0, 1);
 			}
@@ -456,7 +459,7 @@ public:
 			setLayouts = { descriptorSetLayout2 };
 			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), setLayouts.size());
 			std::array<VkPushConstantRange, 1> pushConstantRanges2 = {
-				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2, 0)
+				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3, 0)
 				};
 			pipelineLayoutCI.pushConstantRangeCount = pushConstantRanges2.size();
 			pipelineLayoutCI.pPushConstantRanges = pushConstantRanges2.data();
