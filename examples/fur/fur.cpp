@@ -73,6 +73,12 @@ public:
 		} values;
 	} furData;
 
+	struct Image {
+		vks::Texture2D texture;
+		VkDescriptorSet descriptorSet;
+	};
+	Image imageFin;
+
 	enum FurRenderMethod {
 		multi_draw_shell = 0,
 		geom_shell = 1,
@@ -90,15 +96,12 @@ public:
 	std::array<VkPipelineLayout, 7> pipelineLayouts = {
 		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
 	};
-	
-	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };	
-	struct DescriptorSetLayouts {
-		VkDescriptorSetLayout matrices{ VK_NULL_HANDLE };
-	} descriptorSetLayouts;
-
-	VkDescriptorPool descriptorPool2{ VK_NULL_HANDLE };
-	VkDescriptorSetLayout descriptorSetLayout2{ VK_NULL_HANDLE };
-	VkDescriptorSet descriptorSet2{ VK_NULL_HANDLE };
+		
+	struct DescriptorSettings {
+		VkDescriptorSetLayout descriptorLayout{ VK_NULL_HANDLE };
+		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
+	};
+	std::array<DescriptorSettings, 7> descriptorSettings = {};
 
 	VulkanExample() : VulkanExampleBase()
 	{
@@ -124,11 +127,32 @@ public:
 				{
 					vkDestroyPipelineLayout(device, pipelineLayouts[i], nullptr);
 				}
+
+				if (i < descriptorSettings.size() && descriptorSettings[i].descriptorLayout != VK_NULL_HANDLE)
+				{
+					vkDestroyDescriptorSetLayout(device, descriptorSettings[i].descriptorLayout, nullptr);
+				}
 			}
-			
-			vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.matrices, nullptr);
+
+			// Plane
+			vkDestroyBuffer(vulkanDevice->logicalDevice, verticesPlane.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, verticesPlane.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->logicalDevice, indicesPlane.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, indicesPlane.memory, nullptr);
+			// Sphere
+			vkDestroyBuffer(vulkanDevice->logicalDevice, verticesSphere.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, verticesSphere.memory, nullptr);
+			vkDestroyBuffer(vulkanDevice->logicalDevice, indicesSphere.buffer, nullptr);
+			vkFreeMemory(vulkanDevice->logicalDevice, indicesSphere.memory, nullptr);
+
+			// // Image for fin
+			// vkDestroyImageView(vulkanDevice->logicalDevice, imageFin.texture.view, nullptr);
+			// vkDestroyImage(vulkanDevice->logicalDevice, imageFin.texture.image, nullptr);
+			// vkDestroySampler(vulkanDevice->logicalDevice, imageFin.texture.sampler, nullptr);
+			// vkFreeMemory(vulkanDevice->logicalDevice, imageFin.texture.deviceMemory, nullptr);
 			
 			shaderData.buffer.destroy();
+			furData.buffer.destroy();
 		}
 	}
 
@@ -211,7 +235,7 @@ public:
 
 			if (furRenderMethod == FurRenderMethod::multi_draw_shell)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSettings[multi_draw_shell].descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0
@@ -231,7 +255,7 @@ public:
 			}
 			else if (furRenderMethod == FurRenderMethod::geom_shell)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet2, 0, nullptr);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSettings[geom_shell].descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				// vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_GEOMETRY_BIT, 0
 				// 	, sizeof(float), &furLength);
@@ -432,51 +456,45 @@ public:
 	{
 		// DescriptorPool
 		std::vector<VkDescriptorPoolSize> poolSizes = {
-			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1),
+			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)//Multi-draw shell
+			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2)//gemo shell
 		};
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
+		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, poolSizes.size());
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
 
 		// DescriptorSetLayout
 		VkDescriptorSetLayoutBinding setLayoutBinding = vks::initializers::descriptorSetLayoutBinding(
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0);
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(&setLayoutBinding, 1);
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayouts.matrices));
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSettings[multi_draw_shell].descriptorLayout));
 
 		// DescriptorSet
 		VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool,
-			&descriptorSetLayouts.matrices, 1);
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet));
+			&descriptorSettings[multi_draw_shell].descriptorLayout, 1);
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSettings[multi_draw_shell].descriptorSet));
 		
-		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSet,
+		VkWriteDescriptorSet writeDescriptorSet = vks::initializers::writeDescriptorSet(descriptorSettings[multi_draw_shell].descriptorSet,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor);
 		vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 
 		// Geometry shader shell rendering descriptor
 		{
-			// DescriptorPool
-			poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-			};
-			descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
-			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool2));
-
 			// DescriptorSetLayout
 			std::array<VkDescriptorSetLayoutBinding,2> setLayoutBindings = {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)
 				, vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 1)
 			};
 			descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), 2);
-			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSetLayout2));
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorSettings[geom_shell].descriptorLayout));
 
 			// DescriptorSet
-			allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool2,
-				&descriptorSetLayout2, 1);
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSet2));
+			allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool,
+				&descriptorSettings[geom_shell].descriptorLayout, 1);
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorSettings[geom_shell].descriptorSet));
 		
 			std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
-				vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor)
-				, vks::initializers::writeDescriptorSet(descriptorSet2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &furData.buffer.descriptor)
+				vks::initializers::writeDescriptorSet(descriptorSettings[geom_shell].descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor)
+				, vks::initializers::writeDescriptorSet(descriptorSettings[geom_shell].descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &furData.buffer.descriptor)
 			};
 			
 			vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(),
@@ -488,7 +506,7 @@ public:
 	{
 		// Layout
 		// The pipeline layout uses both descriptor sets (set 0 = matrices, set 1 = material)
-		std::array<VkDescriptorSetLayout, 1> setLayouts = { descriptorSetLayouts.matrices };
+		std::array<VkDescriptorSetLayout, 1> setLayouts = { descriptorSettings[multi_draw_shell].descriptorLayout };
 		VkPipelineLayoutCreateInfo pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), static_cast<uint32_t>(setLayouts.size()));
 		// We will use push constants to push the local matrices of a primitive to the vertex shader
 		std::array<VkPushConstantRange, 2> pushConstantRanges1 = {
@@ -550,7 +568,7 @@ public:
 		
 		// Geometry shader shell rendering pipeline
 		{
-			setLayouts = { descriptorSetLayout2 };
+			setLayouts = { descriptorSettings[geom_shell].descriptorLayout };
 			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), setLayouts.size());
 			std::array<VkPushConstantRange, 1> pushConstantRanges2 = {
 				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3, 0)
