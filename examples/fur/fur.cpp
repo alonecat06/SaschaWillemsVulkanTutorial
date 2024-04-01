@@ -76,16 +76,19 @@ public:
 	enum FurRenderMethod {
 		multi_draw_shell = 0,
 		geom_shell = 1,
-		geom_shell_fin = 2,
-		tess = 3,
+		geom_fin = 2,
+		geom_shell_fin = 3,
+		tese_fin = 4,
+		polygon = 5,
+		anim = 6,
 		max,
 	};
-	std::array<VkPipeline, 4> pipelines = {
-		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
+	std::array<VkPipeline, 7> pipelines = {
+		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
 	};
 
-	std::array<VkPipelineLayout, 4> pipelineLayouts = {
-		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
+	std::array<VkPipelineLayout, 7> pipelineLayouts = {
+		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
 	};
 	
 	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };	
@@ -176,22 +179,32 @@ public:
 			}
 			VkPipelineLayout pipelineLayout = pipelineLayouts[furRenderMethod];
 
-			uint32_t indicesCount = 0; 
-			if (furModel == 0)// plane
+			uint32_t indicesCount = 0;
+			if (furRenderMethod < FurRenderMethod::anim)
 			{
-				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesPlane.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesPlane.buffer, 0, VK_INDEX_TYPE_UINT32);
-				indicesCount = indicesPlane.count;
+				// plane
+				if (furModel == 0)
+				{
+					VkDeviceSize offsets[1] = { 0 };
+					vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesPlane.buffer, offsets);
+					vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesPlane.buffer, 0, VK_INDEX_TYPE_UINT32);
+					indicesCount = indicesPlane.count;
+				}
+				// sphere
+				else if (furModel == 1)
+				{
+					VkDeviceSize offsets[1] = { 0 };
+					vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesSphere.buffer, offsets);
+					vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesSphere.buffer, 0, VK_INDEX_TYPE_UINT32);
+					indicesCount = indicesSphere.count;
+				}
+				// suzanne.gltf model
+				else
+				{
+				
+				}
 			}
-			else if (furModel == 1)// sphere
-			{
-				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(drawCmdBuffers[i], 0, 1, &verticesSphere.buffer, offsets);
-				vkCmdBindIndexBuffer(drawCmdBuffers[i], indicesSphere.buffer, 0, VK_INDEX_TYPE_UINT32);
-				indicesCount = indicesSphere.count;
-			}
-			else// suzanne.gltf model
+			else
 			{
 				
 			}
@@ -557,16 +570,34 @@ public:
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_shell]));
 		}
 
+		// Geometry shader fin rendering pipeline
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[geom_fin]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_fin]));
+		}
+
 		// Geometry shader shell and fin rendering pipeline
 		{
 			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[geom_shell_fin]));
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_shell_fin]));
 		}
 
-		// Tessellation shader rendering pipeline
+		// Fin plant with tessellation shader rendering pipeline
 		{
-			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[tess]));
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[tess]));
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[tese_fin]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[tese_fin]));
+		}
+
+		// Fur rendering with polygon pipeline
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[polygon]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[polygon]));
+		}
+
+		// Fur rendering cooperate with animation
+		{
+			VK_CHECK_RESULT(vkCreatePipelineLayout(device, &pipelineLayoutCI, nullptr, &pipelineLayouts[anim]));
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[anim]));
 		}
 	}
 
@@ -619,14 +650,17 @@ public:
 		if (overlay->header("Settings"))
 		{
 			if (overlay->comboBox("Fur render method", &furRenderMethod,
-				{"Multiple drawing shell", "Geometry shader shell", "Geometry shader shell and fin", "Tessellation shader"}))
+				{"Multi-drawing shell", "Geom shell", "Geom fin", "Shell and fin", "Tese fin", "Polygen", "Anim"}))
 			{
 				buildCommandBuffers();
 			}
-			if (overlay->comboBox("Fur model", &furModel,
-				{"Plane", "Sphere", "Suzanne"}))
+			if (furRenderMethod < 6)
 			{
-				buildCommandBuffers();
+				if (overlay->comboBox("Fur model", &furModel,
+				{"Plane", "Sphere", "Suzanne"}))
+				{
+					buildCommandBuffers();
+				}
 			}
 		}
 	}
