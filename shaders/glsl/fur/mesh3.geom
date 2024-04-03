@@ -34,9 +34,9 @@ layout (location = 0) out GS_TO_FS
 } gemo_out;
 
 
-void appendFinVertices(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
+void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
 {
-    gl_Position = pos;
+    gl_Position = vec4(pos, 1.0);
     gemo_out.normal = normal;
     gemo_out.baseUv = baseUv;
     gemo_out.finUv = finUv;
