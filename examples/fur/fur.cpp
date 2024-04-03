@@ -83,11 +83,8 @@ public:
 		} values;
 	} gemoFinData;
 
-	struct Image {
-		vks::Texture2D texture;
-		VkDescriptorSet descriptorSet;
-	};
-	Image imageFin;
+	vks::Texture2D textureBase;
+	vks::Texture2D textureFin;
 
 	enum FurRenderMethod {
 		multi_draw_shell = 0,
@@ -115,7 +112,8 @@ public:
 	struct {
 		VkDescriptorSetLayout descriptorLayout{ VK_NULL_HANDLE };
 		VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
-		VkDescriptorSetLayout imageLayout{ VK_NULL_HANDLE };
+		VkDescriptorSetLayout imageLayout{ VK_NULL_HANDLE };		
+		VkDescriptorSet imageSet{ VK_NULL_HANDLE };
 	}descriptorsGeomFin;
 
 	VulkanExample() : VulkanExampleBase()
@@ -288,13 +286,13 @@ public:
 			}
 			else if (furRenderMethod == FurRenderMethod::geom_fin)
 			{
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorsGeomShell.descriptorSet, 0, nullptr);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorsGeomFin.descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0
 					, sizeof(float), &furOcclusion);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float)
 					, sizeof(float), &furAlphaCutout);
-				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &imageFin.descriptorSet, 0, nullptr);
+				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1, &descriptorsGeomFin.imageSet, 0, nullptr);
 			
 				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 			}
@@ -477,8 +475,8 @@ public:
 
 	void loadImage()
 	{
-		// imageFin.texture.loadFromFile(getAssetPath() + "textures/fur_base.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
-		imageFin.texture.loadFromFile(getAssetPath() + "textures/fur_fin.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
+		textureBase.loadFromFile(getAssetPath() + "textures/fur_leopard.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
+		textureFin.loadFromFile(getAssetPath() + "textures/fur_fin.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
 	}
 
 	void loadModel()
@@ -492,7 +490,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)//Multi-draw shell
 			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2)//gemo shell
-			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)//gemo fin image file
+			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2)//gemo fin image file
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, poolSizes.size());
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
@@ -559,21 +557,25 @@ public:
 					0, nullptr);
 			}
 
-			// // descriptor for fur fin image sampler 
-			// {
-			// 	// descriptor set layout
-			// 	std::array<VkDescriptorSetLayoutBinding,1> setLayoutBindings = {
-			// 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
-			// 	};
-			// 	descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), setLayoutBindings.size());
-			// 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorsGeomFin.imageLayout));
-			// 	// descriptor set
-			// 	allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorsGeomFin.imageLayout, 1);
-			// 	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &imageFin.descriptorSet));
-			// 	// write and update descriptor set
-			// 	writeDescriptorSet = vks::initializers::writeDescriptorSet(imageFin.descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imageFin.texture.descriptor);
-			// 	vkUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
-			// }
+			// descriptor for fur fin image sampler 
+			{
+				// descriptor set layout
+				std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings = {
+					vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
+					, vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
+				};
+				descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), setLayoutBindings.size());
+				VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorsGeomFin.imageLayout));
+				// descriptor set
+				allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorsGeomFin.imageLayout, 1);
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorsGeomFin.imageSet));
+				// write and update descriptor set
+				std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
+					vks::initializers::writeDescriptorSet(descriptorsGeomFin.imageSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureBase.descriptor)
+					, vks::initializers::writeDescriptorSet(descriptorsGeomFin.imageSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureFin.descriptor)
+				};
+				vkUpdateDescriptorSets(device, writeDescriptorSets.size(), &writeDescriptorSet, 0, nullptr);
+			}
 		}
 	}
 
