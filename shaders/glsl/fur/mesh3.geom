@@ -31,10 +31,11 @@ layout (location = 0) out GS_TO_FS
     vec2 finUv;
     vec3 viewVec;
     vec3 lightVec;
+    float debug;
 } gemo_out;
 
 
-void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
+void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv, float debug)
 {
     gl_Position = vec4(pos, 1.0);
     gemo_out.normal = normal;
@@ -42,6 +43,7 @@ void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
     gemo_out.finUv = finUv;
     gemo_out.viewVec = uboScene.viewPos.xyz - pos.xyz;
     gemo_out.lightVec = uboScene.lightPos.xyz - pos.xyz;
+    gemo_out.debug = debug;
 
     EmitVertex();
 }
@@ -53,10 +55,10 @@ void main(void)
     vec3 pos1 = (uboScene.view * gl_in[1].gl_Position).xyz;
     vec3 pos2 = (uboScene.view * gl_in[2].gl_Position).xyz;
 
-    appendFinVertex(pos0, vertex_in[0].normal, vertex_in[0].uv, vec2(-1.0, -1.0));
-    appendFinVertex(pos1, vertex_in[1].normal, vertex_in[1].uv, vec2(-1.0, -1.0));
-    appendFinVertex(pos2, vertex_in[2].normal, vertex_in[2].uv, vec2(-1.0, -1.0));
-    EndPrimitive();
+//    appendFinVertex(pos0, vertex_in[0].normal, vertex_in[0].uv, vec2(-1.0, -1.0));
+//    appendFinVertex(pos1, vertex_in[1].normal, vertex_in[1].uv, vec2(-1.0, -1.0));
+//    appendFinVertex(pos2, vertex_in[2].normal, vertex_in[2].uv, vec2(-1.0, -1.0));
+//    EndPrimitive();
     
     // Draw fin
     vec3 line01 = pos1 - pos0;
@@ -73,9 +75,9 @@ void main(void)
     vec3 posFin = pos0 + (line01 + line02) / 2;
     vec2 uvFin = (vertex_in[1].uv + vertex_in[2].uv) / 2;
     
-    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 0));
-    appendFinVertex(posFin, normal, uvFin, vec2(1.0, 0));
-    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1.0));
-    appendFinVertex(posFin, normal, uvFin, vec2(1.0, 1.0));
+    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 0), 0);
+    appendFinVertex(posFin, normal, uvFin, vec2(1.0, 0), 1);
+    appendFinVertex(pos0 + fur.len*normal , normal, vertex_in[0].uv, vec2(0, 1.0), 2);
+    appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1.0, 1.0), 3);
     EndPrimitive();
 }
