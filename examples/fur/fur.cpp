@@ -80,7 +80,7 @@ public:
 		vks::Buffer buffer;
 		struct Values {
 			float furLen = 0.2f;
-			float viewProdThresh = 0.5;
+			float viewProdThresh = 0.86;
 		} values;
 	} gemoFinData;
 
@@ -490,7 +490,7 @@ public:
 		std::vector<VkDescriptorPoolSize> poolSizes = {
 			vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)//Multi-draw shell
 			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2)//gemo shell
-			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)//gemo fin image file
+			, vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3)//gemo fin image file
 		};
 		VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, poolSizes.size());
 		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &descriptorPool));
@@ -558,46 +558,6 @@ public:
 			};
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()),
 				writeDescriptorSets.data(), 0, nullptr);
-			// // descriptor for fur setting uniform object 
-			// {
-			// 	// descriptor set layout
-			// 	std::array<VkDescriptorSetLayoutBinding,2> setLayoutBindings = {
-			// 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)
-			// 		, vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 1)
-			// 	};
-			// 	descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), setLayoutBindings.size());
-			// 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorsGeomFin.descriptorLayout));
-			// 	// descriptor set
-			// 	allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorsGeomFin.descriptorLayout, 1);
-			// 	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorsGeomFin.descriptorSet));
-			// 	// write and update descriptor set
-			// 	std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
-			// 		vks::initializers::writeDescriptorSet(descriptorsGeomFin.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &shaderData.buffer.descriptor)
-			// 		, vks::initializers::writeDescriptorSet(descriptorsGeomFin.descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &gemoFinData.buffer.descriptor)
-			// 	};
-			// 	vkUpdateDescriptorSets(device, writeDescriptorSets.size(), writeDescriptorSets.data(),
-			// 		0, nullptr);
-			// }
-			//
-			// // descriptor for fur fin image sampler 
-			// {
-			// 	// descriptor set layout
-			// 	std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings = {
-			// 		vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
-			// 		, vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1)
-			// 	};
-			// 	descriptorSetLayoutCI = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings.data(), setLayoutBindings.size());
-			// 	VK_CHECK_RESULT(vkCreateDescriptorSetLayout(device, &descriptorSetLayoutCI, nullptr, &descriptorsGeomFin.imageLayout));
-			// 	// descriptor set
-			// 	allocInfo = vks::initializers::descriptorSetAllocateInfo(descriptorPool, &descriptorsGeomFin.imageLayout, 1);
-			// 	VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &descriptorsGeomFin.imageSet));
-			// 	// write and update descriptor set
-			// 	std::array<VkWriteDescriptorSet, 2> writeDescriptorSets = {
-			// 		vks::initializers::writeDescriptorSet(descriptorsGeomFin.imageSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureBase.descriptor)
-			// 		, vks::initializers::writeDescriptorSet(descriptorsGeomFin.imageSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureFin.descriptor)
-			// 	};
-			// 	vkUpdateDescriptorSets(device, writeDescriptorSets.size(), &writeDescriptorSet, 0, nullptr);
-			// }
 		}
 	}
 
