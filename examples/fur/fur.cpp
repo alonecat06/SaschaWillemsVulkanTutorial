@@ -40,8 +40,9 @@ public:
 	float furDensity = 100.0f;
 	float furAttenuation = 0.9f;
 	float furThickness = 1.0f;
-	float furAlphaCutout = 0.1f;
-	float furOcclusion = 0.862f;
+	float furOcclusion = 0.1f;
+	float finCutout = 0.862f;
+	float shellCutout = 0.5f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {
@@ -297,7 +298,7 @@ public:
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0
 					, sizeof(float), &furOcclusion);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float)
-					, sizeof(float), &furAlphaCutout);
+					, sizeof(float), &finCutout);
 			
 				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 			}
@@ -306,15 +307,17 @@ public:
 				vkCmdBindDescriptorSets(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorsGeomShellFin.descriptorSet, 0, nullptr);
 				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[furRenderMethod]);
 				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0
-					, sizeof(float), &furOcclusion);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float)
-					, sizeof(float), &furAlphaCutout);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
 					, sizeof(float), &furDensity);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float)
 					, sizeof(float), &furAttenuation);
-				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 4
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 2
 					, sizeof(float), &furThickness);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 3
+					, sizeof(float), &furOcclusion);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 4
+					, sizeof(float), &finCutout);
+				vkCmdPushConstants(drawCmdBuffers[i], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 5
+					, sizeof(float), &shellCutout);
 			
 				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 			}
@@ -727,7 +730,7 @@ public:
 			setLayouts = { descriptorsGeomShellFin.descriptorLayout };
 			pipelineLayoutCI = vks::initializers::pipelineLayoutCreateInfo(setLayouts.data(), setLayouts.size());
 			pushConstantRanges = {
-				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 5, 0)
+				vks::initializers::pushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float) * 6, 0)
 			};
 			pipelineLayoutCI.pushConstantRangeCount = pushConstantRanges.size();
 			pipelineLayoutCI.pPushConstantRanges = pushConstantRanges.data();

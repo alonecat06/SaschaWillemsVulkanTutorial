@@ -1,7 +1,7 @@
 #version 450
 layout (set = 0, binding = 2) uniform sampler2D samplerBaseColor;
 layout (set = 0, binding = 3) uniform sampler2D samplerFinMap;
-layout (set = 0, binding = 3) uniform sampler2D samplerNoiseMap;
+layout (set = 0, binding = 4) uniform sampler2D samplerNoiseMap;
 
 layout (location = 0) in GS_TO_FS
 {
@@ -15,11 +15,12 @@ layout (location = 0) in GS_TO_FS
 } frag_in;
 
 layout(push_constant) uniform PushConsts {
-	float alphaCutout;
-	float occlusion;
 	float density;
 	float attenuation;
 	float thickness;
+	float occlusion;
+	float finCutout;
+	float shellCutout;
 } furFrag;
 
 layout (location = 0) out vec4 outFragColor;
@@ -32,24 +33,20 @@ void main()
 {
 	if (frag_in.shellHigh >= 0)
 	{
-		vec2 localspace = fract(frag_in.baseUv * furFrag.density) * 2 - 1;
-		float dist = length(localspace);
-		float rnd_high = hash(floor(frag_in.baseUv * furFrag.density));
+		vec4 noiseColor = texture(samplerNoiseMap, frag_in.baseUv, frag_in.lodBias);
 
-		if (frag_in.shellHigh > 0 && dist > furFrag.thickness * (rnd_high / frag_in.shellHigh - 1))
+		if (frag_in.shellHigh > 0 && noiseColor.r < furFrag.shellCutout)
 		{
 			discard;
 		}
-
-//		vec4 color = vec4(frag_in.color, 1.0) * pow(frag_in.shellHigh, furFrag.attenuation);
-//		outFragColor = vec4(color.rgb, 1.0);
+		
 		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
 		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
 	}
 	else
 	{
 		vec4 furColor = texture(samplerFinMap, frag_in.finUv, frag_in.lodBias);
-		if (frag_in.finUv.x > 0 && furColor.a < furFrag.alphaCutout)
+		if (frag_in.finUv.x > 0 && furColor.a < furFrag.finCutout)
 		{
 			discard;
 		}

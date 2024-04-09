@@ -39,8 +39,8 @@ layout (location = 0) in GS_TO_FS
 } frag_in;
 
 layout(push_constant) uniform PushConsts {
-	float alphaCutout;
 	float occlusion;
+	float alphaCutout;
 } furFrag;
 
 layout (location = 0) out vec4 outFragColor;
