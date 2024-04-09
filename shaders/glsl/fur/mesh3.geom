@@ -73,15 +73,15 @@ void main(void)
     vec3 posFin = pos0 + (line01 + line02) / 2;
     vec2 uvFin = (vertex_in[1].uv + vertex_in[2].uv) / 2;
     
-    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 0));
-    appendFinVertex(posFin, normal, uvFin, vec2(1.0, 0));
-    appendFinVertex(pos0 + fur.len*normal , normal, vertex_in[0].uv, vec2(0, 1.0));
-    appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1.0, 1.0));
+    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
+    appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
+    appendFinVertex(pos0 + fur.len*normal , normal, vertex_in[0].uv, vec2(0, 0));
+    appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
     EndPrimitive();
 
-    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 0));
-    appendFinVertex(pos0 + fur.len*normal , normal, vertex_in[0].uv, vec2(0, 1.0));
-    appendFinVertex(posFin, normal, uvFin, vec2(1.0, 0));
-    appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1.0, 1.0));
+    appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
+    appendFinVertex(pos0 + fur.len*normal , normal, vertex_in[0].uv, vec2(0, 0));
+    appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
+    appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
     EndPrimitive();
 }

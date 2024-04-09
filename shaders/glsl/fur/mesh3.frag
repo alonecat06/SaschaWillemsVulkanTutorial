@@ -48,11 +48,11 @@ layout (location = 0) out vec4 outFragColor;
 void main()
 {
 	vec4 furColor = texture(samplerFurMap, frag_in.finUv, frag_in.lodBias);
-//	if (furColor.a < furFrag.alphaCutout)
-//	{
-//		discard;
-//	}
+	if (frag_in.finUv.x > 0 && furColor.a < furFrag.alphaCutout)
+	{
+		discard;
+	}
 
 	outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
-	outFragColor.rgb *= mix(1.0 - furFrag.occlusion, 1.0, frag_in.finUv.y);
+	outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
 }
