@@ -38,7 +38,7 @@ public:
 	// float furLength = 0.2f;
 	// int furLayerNum = 32;
 	float furDensity = 100.0f;
-	float furAttenuation = 0.9f;
+	float furAttenuation = 0.2f;
 	float furThickness = 1.0f;
 	float furOcclusion = 0.1f;
 	float finCutout = 0.862f;
@@ -89,7 +89,7 @@ public:
 		vks::Buffer buffer;
 		struct Values {
 			float furLen = 0.2f;
-			float viewProdThresh = 0.86f;
+			float viewProdThresh = 0.7f;
 			int furLayers = 16;
 		} values;
 	} gemoShellFinData;

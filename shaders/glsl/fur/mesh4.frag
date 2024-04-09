@@ -34,14 +34,14 @@ void main()
 	if (frag_in.shellHigh >= 0)
 	{
 		vec4 noiseColor = texture(samplerNoiseMap, frag_in.baseUv, frag_in.lodBias);
-
-		if (frag_in.shellHigh > 0 && noiseColor.r < furFrag.shellCutout)
+		float alpha = noiseColor.r * (1.0 - frag_in.shellHigh);
+		if (frag_in.shellHigh > 0 && alpha < furFrag.shellCutout)
 		{
 			discard;
 		}
 		
 		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
-		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
+		outFragColor.rgb *= mix(1 - furFrag.occlusion, 1, frag_in.shellHigh);
 	}
 	else
 	{
