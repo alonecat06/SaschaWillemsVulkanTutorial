@@ -26,7 +26,7 @@
 //	outFragColor = vec4((diffuse * color.rgb + specular) * color1.a, 1);
 //}
 layout (set = 0, binding = 2) uniform sampler2D samplerBaseColor;
-layout (set = 0, binding = 3) uniform sampler2D samplerFurMap;
+layout (set = 0, binding = 3) uniform sampler2D samplerFinMap;
 
 layout (location = 0) in GS_TO_FS
 {
@@ -47,7 +47,7 @@ layout (location = 0) out vec4 outFragColor;
 
 void main()
 {
-	vec4 furColor = texture(samplerFurMap, frag_in.finUv, frag_in.lodBias);
+	vec4 furColor = texture(samplerFinMap, frag_in.finUv, frag_in.lodBias);
 	if (frag_in.finUv.x > 0 && furColor.a < furFrag.alphaCutout)
 	{
 		discard;
