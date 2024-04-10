@@ -40,9 +40,9 @@ public:
 	float furDensity = 100.0f;
 	float furAttenuation = 0.2f;
 	float furThickness = 1.0f;
-	float furOcclusion = 0.1f;
+	float furOcclusion = 0.4f;
 	float finCutout = 0.862f;
-	float shellCutout = 0.5f;
+	float shellCutout = 0.172f;
 		
 	// Setup vertices// Vertex layout used in this example
 	struct Vertex {
@@ -88,9 +88,9 @@ public:
 	struct {
 		vks::Buffer buffer;
 		struct Values {
-			float furLen = 0.2f;
+			float furLen = 0.14f;
 			float viewProdThresh = 0.7f;
-			int furLayers = 16;
+			int furLayers = 14;
 		} values;
 	} gemoShellFinData;
 
@@ -500,7 +500,7 @@ public:
 
 	void loadImage()
 	{
-		textureBase.loadFromFile(getAssetPath() + "textures/fur_leopard.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
+		textureBase.loadFromFile(getAssetPath() + "textures/Default-Checker-Gray.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
 		textureFin.loadFromFile(getAssetPath() + "textures/fur_fin.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
 		textureNoise.loadFromFile(getAssetPath() + "textures/fur_noise.ktx", VK_FORMAT_R8G8B8A8_SRGB, vulkanDevice, queue);
 	}
@@ -739,8 +739,10 @@ public:
 			pipelineCI.layout = pipelineLayouts[geom_shell_fin];			
 			shaderStages = {
 				loadShader(getShadersPath() + "fur/mesh4.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-				loadShader(getShadersPath() + "fur/mesh4.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
-				loadShader(getShadersPath() + "fur/mesh4.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				loadShader(getShadersPath() + "fur/mesh4test1.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				loadShader(getShadersPath() + "fur/mesh4test1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				// loadShader(getShadersPath() + "fur/mesh4.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				// loadShader(getShadersPath() + "fur/mesh4.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
