@@ -43,7 +43,7 @@ void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
     gemo_out.furUv = finUv;
     gemo_out.viewVec = uboScene.viewPos.xyz - pos.xyz;
     gemo_out.lightVec = uboScene.lightPos.xyz - pos.xyz;
-    gemo_out.shellHigh = -1;
+    gemo_out.shellHigh = 0;
 
     EmitVertex();
 }

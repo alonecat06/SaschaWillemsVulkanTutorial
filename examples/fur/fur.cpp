@@ -33,6 +33,7 @@ public:
 	int32_t furRenderMethod = 0;
 	int32_t furModel = 0;
 	
+	bool displayNormals = true;
 	bool wireframe = false;
 
 	// float furLength = 0.2f;
@@ -111,6 +112,7 @@ public:
 	std::array<VkPipeline, 7> pipelines = {
 		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
 	};
+	VkPipeline pipelineNormal{VK_NULL_HANDLE}; 
 
 	std::array<VkPipelineLayout, 7> pipelineLayouts = {
 		VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE
@@ -322,6 +324,13 @@ public:
 				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
 			}
 
+			// Normal debugging
+			if (displayNormals)
+			{
+				vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineNormal);
+				vkCmdDrawIndexed(drawCmdBuffers[i], indicesCount, 1, 0, 0, 1);
+			}
+
 			drawUI(drawCmdBuffers[i]);
 			vkCmdEndRenderPass(drawCmdBuffers[i]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers[i]));
@@ -331,7 +340,7 @@ public:
 	void loadAssets()
 	{
 		createPlane();
-		createSphere(1, 500);
+		createSphere(1, 100);
 		loadImage();
 		loadModel();
 	}
@@ -660,8 +669,8 @@ public:
 		vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {
-			loadShader(getShadersPath() + "fur/mesh1.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-			loadShader(getShadersPath() + "fur/mesh1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				loadShader(getShadersPath() + "fur/mesh1.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+				loadShader(getShadersPath() + "fur/mesh1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 		};
 
 		VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayouts[multi_draw_shell], renderPass, 0);
@@ -677,9 +686,7 @@ public:
 		pipelineCI.pStages = shaderStages.data();
 
 		// Multiple drawing shell rendering pipeline
-		{
-			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[multi_draw_shell]));
-		}
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[multi_draw_shell]));
 		
 		// Geometry shader shell rendering pipeline
 		{
@@ -739,6 +746,7 @@ public:
 			pipelineCI.layout = pipelineLayouts[geom_shell_fin];			
 			shaderStages = {
 				loadShader(getShadersPath() + "fur/mesh4.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+				// 试验比较接近fur urp的shell渲染的效果
 				loadShader(getShadersPath() + "fur/mesh4test1.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
 				loadShader(getShadersPath() + "fur/mesh4test1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 				// loadShader(getShadersPath() + "fur/mesh4.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
@@ -747,6 +755,18 @@ public:
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelines[geom_shell_fin]));
+
+			// Draw normal for debug
+			{
+				shaderStages = {
+					loadShader(getShadersPath() + "fur/meshNormal.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
+					loadShader(getShadersPath() + "fur/meshNormal.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+					loadShader(getShadersPath() + "fur/meshNormal.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				};
+				pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+				pipelineCI.pStages = shaderStages.data();
+				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineCI, nullptr, &pipelineNormal));
+			}
 		}
 		
 		// // Fin plant with tessellation shader rendering pipeline
@@ -837,6 +857,12 @@ public:
 			{
 				buildCommandBuffers();
 			}
+			
+			if (overlay->checkBox("Display normals", &displayNormals))
+			{
+				buildCommandBuffers();
+			}
+			
 			if (furRenderMethod < 6)
 			{
 				if (overlay->comboBox("Fur model", &furModel,
