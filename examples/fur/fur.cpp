@@ -33,7 +33,7 @@ public:
 	int32_t furRenderMethod = 0;
 	int32_t furModel = 0;
 	
-	bool displayNormals = true;
+	bool displayNormals = false;
 	bool wireframe = false;
 
 	// float furLength = 0.2f;
@@ -90,7 +90,7 @@ public:
 		vks::Buffer buffer;
 		struct Values {
 			float furLen = 0.14f;
-			float viewProdThresh = 0.7f;
+			float viewProdThresh = 0.5f;
 			int furLayers = 14;
 		} values;
 	} gemoShellFinData;
@@ -746,11 +746,11 @@ public:
 			pipelineCI.layout = pipelineLayouts[geom_shell_fin];			
 			shaderStages = {
 				loadShader(getShadersPath() + "fur/mesh4.vert.spv", VK_SHADER_STAGE_VERTEX_BIT),
-				// 试验比较接近fur urp的shell渲染的效果
-				loadShader(getShadersPath() + "fur/mesh4test1.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
-				loadShader(getShadersPath() + "fur/mesh4test1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
-				// loadShader(getShadersPath() + "fur/mesh4.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
-				// loadShader(getShadersPath() + "fur/mesh4.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				// // 试验比较接近fur urp的shell渲染的效果
+				// loadShader(getShadersPath() + "fur/mesh4test1.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				// loadShader(getShadersPath() + "fur/mesh4test1.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
+				loadShader(getShadersPath() + "fur/mesh4.geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT),
+				loadShader(getShadersPath() + "fur/mesh4.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT)
 			};
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();

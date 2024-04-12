@@ -25,10 +25,6 @@ layout(push_constant) uniform PushConsts {
 
 layout (location = 0) out vec4 outFragColor;
 
-float hash(vec2 uv){
-	return fract(sin(7.289 * uv.x + 11.23 * uv.y) * 23758.5453);
-}
-
 void main()
 {
 	if (frag_in.shellHigh >= 0)
@@ -43,15 +39,15 @@ void main()
 		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
 		outFragColor.rgb *= mix(1 - furFrag.occlusion, 1, frag_in.shellHigh);
 	}
-//	else
-//	{
-//		vec4 furColor = texture(samplerFinMap, frag_in.furUv, frag_in.lodBias);
-//		if (frag_in.finUv.x > 0 && furColor.a < furFrag.finCutout)
-//		{
-//			discard;
-//		}
-//
-//		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
-//		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
-//	}
+	else
+	{
+		vec4 furColor = texture(samplerFinMap, frag_in.furUv, frag_in.lodBias);
+		if (frag_in.furUv.x > 0 && furColor.a < furFrag.finCutout)
+		{
+			discard;
+		}
+
+		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
+		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.furUv.y);
+	}
 }
