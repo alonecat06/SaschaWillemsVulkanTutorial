@@ -340,7 +340,7 @@ public:
 	void loadAssets()
 	{
 		createPlane();
-		createSphere(1, 100);
+		createSphere(1, 500);
 		loadImage();
 		loadModel();
 	}

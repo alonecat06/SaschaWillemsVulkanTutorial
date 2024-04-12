@@ -28,7 +28,7 @@ layout (location = 0) out GS_TO_FS
 {
     vec3 normal;
     vec2 baseUv;
-    vec2 finUv;
+    vec2 furUv;
     float shellHigh;
     vec3 viewVec;
     vec3 lightVec;
@@ -40,7 +40,7 @@ void appendFinVertex(vec3 pos, vec3 normal, vec2 baseUv, vec2 finUv)
     gl_Position = uboScene.projection * vec4(pos, 1.0);
     gemo_out.normal = normal;
     gemo_out.baseUv = baseUv;
-    gemo_out.finUv = finUv;
+    gemo_out.furUv = finUv;
     gemo_out.viewVec = uboScene.viewPos.xyz - pos.xyz;
     gemo_out.lightVec = uboScene.lightPos.xyz - pos.xyz;
     gemo_out.shellHigh = -1;
@@ -69,7 +69,7 @@ void main(void)
 
     vec3 viewDir = normalize(uboScene.viewPos.xyz - center);
     float eyeDotN = dot(viewDir, normal);
-    if (abs(eyeDotN) > fur.viewProdThresh)
+//    if (abs(eyeDotN) > fur.viewProdThresh)
     {
         int i, layer;
         float disp_delta = 1.0 / float(fur.layers);
@@ -82,8 +82,8 @@ void main(void)
                 vec4 pos = uboScene.view * vec4(gl_in[i].gl_Position.xyz + d * fur.len * gemo_out.normal, 1.0);
                 gl_Position = uboScene.projection * pos;
                 
-                gemo_out.baseUv = vertex_in[i].uv;
-                gemo_out.finUv = vec2(-1.0, -1.0);
+                gemo_out.baseUv = vertex_in[i].uv * vec2(10, 10);
+                gemo_out.furUv = vertex_in[i].uv;
 
                 gemo_out.shellHigh = d;
 
@@ -96,21 +96,21 @@ void main(void)
             EndPrimitive();
         }
     }
-    else
-    {
-        vec3 posFin = pos0 + (line01 + line02) / 2;
-        vec2 uvFin = (vertex_in[1].uv + vertex_in[2].uv) / 2;
-
-        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
-        appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
-        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0));
-        appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
-        EndPrimitive();
-
-        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
-        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0));
-        appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
-        appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
-        EndPrimitive();
-    }
+//    else
+//    {
+//        vec3 posFin = pos0 + (line01 + line02) / 2;
+//        vec2 uvFin = (vertex_in[1].uv + vertex_in[2].uv) / 2;
+//
+//        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
+//        appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
+//        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0));
+//        appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
+//        EndPrimitive();
+//
+//        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1));
+//        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0));
+//        appendFinVertex(posFin, normal, uvFin, vec2(1, 1));
+//        appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0));
+//        EndPrimitive();
+//    }
 }

@@ -7,7 +7,7 @@ layout (location = 0) in GS_TO_FS
 {
 	vec3 normal;
 	vec2 baseUv;
-	vec2 finUv;
+	vec2 furUv;
 	float shellHigh;
 	vec3 viewVec;
 	vec3 lightVec;
@@ -33,7 +33,7 @@ void main()
 {
 	if (frag_in.shellHigh >= 0)
 	{
-		vec4 noiseColor = texture(samplerNoiseMap, frag_in.baseUv, frag_in.lodBias);
+		vec4 noiseColor = texture(samplerNoiseMap, frag_in.furUv, frag_in.lodBias);
 		float alpha = noiseColor.r * (1.0 - frag_in.shellHigh);
 		if (frag_in.shellHigh > 0 && alpha < furFrag.shellCutout)
 		{
@@ -43,15 +43,15 @@ void main()
 		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
 		outFragColor.rgb *= mix(1 - furFrag.occlusion, 1, frag_in.shellHigh);
 	}
-	else
-	{
-		vec4 furColor = texture(samplerFinMap, frag_in.finUv, frag_in.lodBias);
-		if (frag_in.finUv.x > 0 && furColor.a < furFrag.finCutout)
-		{
-			discard;
-		}
-
-		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
-		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
-	}
+//	else
+//	{
+//		vec4 furColor = texture(samplerFinMap, frag_in.furUv, frag_in.lodBias);
+//		if (frag_in.finUv.x > 0 && furColor.a < furFrag.finCutout)
+//		{
+//			discard;
+//		}
+//
+//		outFragColor = texture(samplerBaseColor, frag_in.baseUv, frag_in.lodBias);
+//		outFragColor.rgb *= mix(1, 1 - furFrag.occlusion, frag_in.finUv.y);
+//	}
 }

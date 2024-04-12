@@ -78,7 +78,7 @@ void main(void)
     {
         for (i = 0; i < gl_in.length(); i++) {
             gemo_out.normal = mat3(uboScene.view) * vertex_in[i].normal;
-            vec4 pos = uboScene.view * vec4(gl_in[i].gl_Position.xyz + d * fur.len * gemo_out.normal, 1.0);
+            vec4 pos = uboScene.view * vec4(gl_in[i].gl_Position.xyz + d * fur.len * vertex_in[i].normal, 1.0);
             gl_Position = uboScene.projection * pos;
 
             gemo_out.baseUv = vertex_in[i].uv * vec2(10, 10);
