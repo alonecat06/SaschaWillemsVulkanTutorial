@@ -67,7 +67,7 @@ void main(void)
 
     vec3 center = (pos0 + pos1 + pos2) / 3;
 
-    vec3 viewDir = normalize(uboScene.viewPos.xyz - center);
+    vec3 viewDir = normalize(vec3(0, 0, 0) - center);
     float eyeDotN = dot(viewDir, normal);
     if (abs(eyeDotN) > fur.viewProdThresh)
     {

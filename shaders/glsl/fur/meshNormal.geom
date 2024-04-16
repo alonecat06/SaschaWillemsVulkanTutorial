@@ -62,7 +62,7 @@ void main(void)
 	outColor = vec3(0.0, 1.0, 0.0);
 	EmitVertex();
 
-	gl_Position = ubo.projection * ubo.viewPos;
+	gl_Position = ubo.projection * vec4(0, 0, 0, 1);
 	outColor = vec3(1.0, 1.0, 0.0);
 	EmitVertex();
 
