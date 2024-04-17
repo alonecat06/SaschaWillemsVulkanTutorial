@@ -90,7 +90,7 @@ public:
 		vks::Buffer buffer;
 		struct Values {
 			float furLen = 0.14f;
-			float viewProdThresh = 0.5f;
+			float viewProdThresh = 0.3f;
 			int furLayers = 14;
 		} values;
 	} gemoShellFinData;

@@ -82,7 +82,7 @@ void main(void)
                 vec4 pos = uboScene.view * vec4(gl_in[i].gl_Position.xyz + d * fur.len * vertex_in[i].normal, 1.0);
                 gl_Position = uboScene.projection * pos;
                 
-                gemo_out.baseUv = vertex_in[i].uv * vec2(10, 10);
+                gemo_out.baseUv = vertex_in[i].uv * vec2(10, 10);// Unity Shader TRANSFORM_TEX
                 gemo_out.furUv = vertex_in[i].uv;
 
                 gemo_out.shellHigh = d;
@@ -98,17 +98,18 @@ void main(void)
     }
     else
     {
+        vec2 uvPos0 = vertex_in[0].uv * vec2(10, 10);// Unity Shader TRANSFORM_TEX
         vec3 posFin = pos0 + (line01 + line02) / 2;
-        vec2 uvFin = (vertex_in[1].uv + vertex_in[2].uv) / 2;
+        vec2 uvFin = ((vertex_in[1].uv + vertex_in[2].uv) / 2) * vec2(10, 10);// Unity Shader TRANSFORM_TEX
 
-        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1), -1);
+        appendFinVertex(pos0, normal, uvPos0, vec2(0, 1), -1);
         appendFinVertex(posFin, normal, uvFin, vec2(1, 1), -1);
-        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0), -1);
+        appendFinVertex(pos0 + fur.len*normal, normal, uvPos0, vec2(0, 0), -1);
         appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0), -1);
         EndPrimitive();
 
-        appendFinVertex(pos0, normal, vertex_in[0].uv, vec2(0, 1), -1);
-        appendFinVertex(pos0 + fur.len*normal, normal, vertex_in[0].uv, vec2(0, 0), -1);
+        appendFinVertex(pos0, normal, uvPos0, vec2(0, 1), -1);
+        appendFinVertex(pos0 + fur.len*normal, normal, uvPos0, vec2(0, 0), -1);
         appendFinVertex(posFin, normal, uvFin, vec2(1, 1), -1);
         appendFinVertex(posFin + fur.len*normal, normal, uvFin, vec2(1, 0), -1);
         EndPrimitive();
