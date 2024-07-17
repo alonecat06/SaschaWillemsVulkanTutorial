@@ -172,6 +172,7 @@ set(EXAMPLES
 	viewportarray
 	vulkanscene
 	fur
+	outline
 )
 
 buildExamples()
